@@ -91,7 +91,7 @@ class PowerMode(IntEnum):
 class BMP3XX:
     """Base class for BMP3XX sensor."""
 
-    def __init__(self, power_mode=PowerMode.forced):
+    def __init__(self):
         chip_id = self._read_byte(_REGISTER_CHIPID)
         if _CHIP_ID != chip_id:
             raise RuntimeError('Failed to find BMP3XX! Chip ID 0x%x' % chip_id)
@@ -99,8 +99,6 @@ class BMP3XX:
         self.reset()
         self.sea_level_pressure = 1013.25
         """Sea level pressure in hPa."""
-
-        self.power_mode = power_mode
 
     @property
     def output_data_rate(self):
