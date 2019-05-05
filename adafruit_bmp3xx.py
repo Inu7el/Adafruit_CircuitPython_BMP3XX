@@ -58,6 +58,7 @@ _CHIP_ID = const(0x50)
 
 # pylint: disable=bad-whitespace
 _REGISTER_CHIPID        = const(0x00)
+_REGISTER_ERR           = const(0x02)
 _REGISTER_STATUS        = const(0x03)
 _REGISTER_PRESSUREDATA  = const(0x04)
 _REGISTER_TEMPDATA      = const(0x07)
@@ -90,7 +91,7 @@ class PowerMode(IntEnum):
 class BMP3XX:
     """Base class for BMP3XX sensor."""
 
-    def __init__(self, power_mode=PowerMode.normal):
+    def __init__(self, power_mode=PowerMode.forced):
         chip_id = self._read_byte(_REGISTER_CHIPID)
         if _CHIP_ID != chip_id:
             raise RuntimeError('Failed to find BMP3XX! Chip ID 0x%x' % chip_id)
@@ -102,6 +103,14 @@ class BMP3XX:
         self.power_mode = power_mode
 
     @property
+    def output_data_rate(self):
+        return self._read_byte(_REGISTER_ODR)
+
+    @output_data_rate.setter
+    def output_data_rate(self, odr):
+        self._write_register_byte(_REGISTER_ODR, odr)
+
+    @property
     def power_mode(self):
         return self._power_mode
 
@@ -111,6 +120,10 @@ class BMP3XX:
             raise ValueError("Power mode value not valid.")
         self._power_mode = power_mode
         self._write_register_byte(_REGISTER_CONTROL, power_mode | 0x03)
+
+    @property
+    def error(self):
+        return self._read_byte(_REGISTER_ERR)
 
     @property
     def pressure(self):
@@ -178,9 +191,9 @@ class BMP3XX:
             # Perform one measurement in forced mode
             self._write_register_byte(_REGISTER_CONTROL, 0x13)
 
-        # Wait for *both* conversions to complete
-        while self._read_byte(_REGISTER_STATUS) & 0x60 != 0x60:
-            time.sleep(0.002)
+            # Wait for *both* conversions to complete
+            while self._read_byte(_REGISTER_STATUS) & 0x60 != 0x60:
+                time.sleep(0.002)
 
         # Get ADC values
         data = self._read_register(_REGISTER_PRESSUREDATA, 6)
